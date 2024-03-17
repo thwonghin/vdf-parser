@@ -65,42 +65,71 @@ export class Tokenizer {
     private state: TokenizerState = TokenizerState.AFTER_VALUE;
     private readonly tokenParts: string[] = [];
     private nestedLevel = 0;
+    private buffer: string | null = null;
 
-    constructor(public options: TokenizerOption) {}
+    constructor(private readonly options: TokenizerOption) {}
+
+    public *consume(char: string): Generator<TokenResponse | ControlResponse> {
+        if (char.length !== 1) {
+            throw new TokenizerError(
+                'Should consume 1 character each time. Use `consumeLine` for multiple characters',
+            );
+        }
+
+        if (this.buffer === null) {
+            this.buffer = char;
+            return;
+        }
+
+        yield* this.parseCharacter(this.buffer, char);
+        if (this.buffer !== null) {
+            this.buffer = char;
+        }
+    }
+
+    public *flush(): Generator<TokenResponse | ControlResponse> {
+        if (this.buffer !== null) {
+            yield* this.parseCharacter(this.buffer, undefined);
+            this.buffer = null;
+        }
+    }
 
     public *consumeLine(
         line: string,
     ): Generator<TokenResponse | ControlResponse> {
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i]!;
-            const lookAhead = line[i + 1];
+        for (const char of line) {
+            yield* this.consume(char);
+        }
 
-            if (NEW_LINE_CHARS.includes(char)) {
-                yield* this.handleNewLine();
-            } else if (WHITE_SPACE_CHARS.includes(char)) {
-                yield* this.handleWhitespace(char);
-            } else if (char === QUOTE) {
-                yield* this.handleQuote();
-            } else if (char === BRACKET_OPEN) {
-                yield* this.handleBracketOpen(char);
-            } else if (char === BRACKET_CLOSE) {
-                yield* this.handleBracketClose(char);
-            } else if (char === ESCAPE) {
-                if (this.options.escape) {
-                    this.handleEscape(char, lookAhead);
-                    i++; // Skip lookahead
-                } else {
-                    this.handleNormalCharacter(char);
-                }
-            } else if ([char, lookAhead].join('') === COMMENT_START) {
-                yield* this.handleComment();
+        yield* this.consume('\n');
+        yield* this.flush();
+    }
+
+    private *parseCharacter(
+        char: string,
+        lookahead: string | undefined,
+    ): Generator<TokenResponse | ControlResponse> {
+        if (NEW_LINE_CHARS.includes(char)) {
+            yield* this.handleNewLine();
+        } else if (WHITE_SPACE_CHARS.includes(char)) {
+            yield* this.handleWhitespace(char);
+        } else if (char === QUOTE) {
+            yield* this.handleQuote();
+        } else if (char === BRACKET_OPEN) {
+            yield* this.handleBracketOpen(char);
+        } else if (char === BRACKET_CLOSE) {
+            yield* this.handleBracketClose(char);
+        } else if (char === ESCAPE) {
+            if (this.options.escape) {
+                this.handleEscape(char, lookahead);
+                this.buffer = null;
             } else {
                 this.handleNormalCharacter(char);
             }
-        }
-
-        if (!NEW_LINE_CHARS.includes(line[line.length - 1]!)) {
-            yield* this.handleNewLine();
+        } else if ([char, lookahead].join('') === COMMENT_START) {
+            yield* this.handleComment();
+        } else {
+            this.handleNormalCharacter(char);
         }
     }
 
@@ -278,6 +307,9 @@ export class Tokenizer {
             // Do nothing
             return;
         }
+
+        console.log('char', char);
+        console.log('lookAhead', lookAhead);
 
         if (lookAhead === '' || lookAhead === undefined) {
             throw new TokenizerNoCharacterToEscapeError();

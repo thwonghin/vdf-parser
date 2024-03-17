@@ -107,7 +107,7 @@ test('should parse multiple tokens with no space correctly', () => {
 
 test('should parse multiple line with with quotes correctly', () => {
     const tokenizer = new Tokenizer({ escape: false });
-    const input = `"key" "value"\ranother_key     "another_value"
+    const input = `"key" "value"\r\n\r\nanother_key     "another_value"
     `;
 
     const tokens = [...tokenizer.consumeLine(input)];
@@ -594,7 +594,10 @@ test('should throw when having no character to escape', () => {
     let error = null;
     try {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...tokenizer.consumeLine(input)];
+        const tokens = [
+            ...input.split('').flatMap((c) => [...tokenizer.consume(c)]),
+            ...tokenizer.flush(),
+        ];
     } catch (err) {
         error = err;
     }
