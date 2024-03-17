@@ -1,4 +1,4 @@
-# vdf-parser
+# @hinw/vdf-parser
 
 A parser for Valve's KeyValue text file format (VDF) https://developer.valvesoftware.com/wiki/KeyValues
 
