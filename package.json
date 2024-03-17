@@ -1,5 +1,5 @@
 {
-    "name": "@thwonghin/vdf-parser",
+    "name": "@hinw/vdf-parser",
     "module": "index.ts",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
