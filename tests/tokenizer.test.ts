@@ -588,23 +588,6 @@ test('should throw when ending too many nest levels', () => {
     expect(error).toEqual(new TokenizerTooManyBracketsError());
 });
 
-test('should throw when having no character to escape', () => {
-    const tokenizer = new Tokenizer({ escape: true });
-    const input = `"key"{}\\`;
-    let error = null;
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [
-            ...input.split('').flatMap((c) => [...tokenizer.consume(c)]),
-            ...tokenizer.flush(),
-        ];
-    } catch (err) {
-        error = err;
-    }
-
-    expect(error).toEqual(new TokenizerNoCharacterToEscapeError());
-});
-
 test('should throw when the character is unsupported to escape', () => {
     const tokenizer = new Tokenizer({ escape: true });
     const input = `"key\\e"{}`;

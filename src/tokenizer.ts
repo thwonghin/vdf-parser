@@ -88,6 +88,7 @@ export class Tokenizer {
     }
 
     public *flush(): Generator<TokenResponse | ControlResponse> {
+        yield* this.consume('\n');
         if (this.buffer !== null) {
             yield* this.parseCharacter(this.buffer, undefined);
             this.buffer = null;
@@ -101,7 +102,6 @@ export class Tokenizer {
             yield* this.consume(char);
         }
 
-        yield* this.consume('\n');
         yield* this.flush();
     }
 
