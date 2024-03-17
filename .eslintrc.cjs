@@ -66,7 +66,7 @@ module.exports = {
                 ignore: ['bun:test'],
             },
         ],
-        '@typescript-eslint/prefer-for-of': 'off'
+        '@typescript-eslint/prefer-for-of': 'off',
     },
     settings: {
         'import/resolver': {
