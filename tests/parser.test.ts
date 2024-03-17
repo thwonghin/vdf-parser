@@ -1,3 +1,4 @@
+import path from 'node:path';
 import stream from 'node:stream';
 
 import { test, expect, describe } from 'bun:test';
@@ -191,6 +192,33 @@ describe('parseStream', () => {
 
         const parser = new Parser({ escape: true, useLatestValue: false });
         const result = await parser.parseStream(stream.Readable.from(input));
+
+        expect(result).toEqual({
+            key: {
+                'ke"y2': {
+                    key3: 'val\\ue3',
+                },
+            },
+            key4: {
+                none: 'none',
+            },
+            key5: {
+                'key\\n{6}': 'val\\tue{6}',
+                key7: {
+                    key8: 'value8',
+                },
+                key9: 'value9',
+            },
+        });
+    });
+});
+
+describe('parseFile', () => {
+    test('should parse correctly', async () => {
+        const parser = new Parser({ escape: true, useLatestValue: false });
+        const result = await parser.parseFile(
+            path.join(__dirname, 'fixtures', 'sample.vdf'),
+        );
 
         expect(result).toEqual({
             key: {

@@ -1,4 +1,5 @@
-import type stream from 'stream';
+import fs from 'node:fs';
+import type stream from 'node:stream';
 
 import {
     ControlType,
@@ -35,6 +36,12 @@ export class Parser {
         this.tokenizer = new Tokenizer(options);
     }
 
+    public async parseFile(filePath: string) {
+        return this.parseStream(
+            fs.createReadStream(filePath, { encoding: 'utf-8' }),
+        );
+    }
+
     public async parseStream(
         readStream: stream.Readable,
     ): Promise<KeyValueMap> {
@@ -53,13 +60,13 @@ export class Parser {
         return this.result;
     }
 
-    public ingestChar(char: string) {
+    private ingestChar(char: string) {
         for (const pair of this.ingestIterator(char)) {
             this.buildKvMap(pair);
         }
     }
 
-    public ingestText(text: string) {
+    private ingestText(text: string) {
         for (const char of text) {
             this.ingestChar(char);
         }
@@ -67,19 +74,13 @@ export class Parser {
         this.ingestChar('\n');
     }
 
-    public ingestLines(lines: Iterable<string>) {
-        for (const line of lines) {
-            this.ingestText(line);
-        }
-    }
-
-    public flush() {
+    private flush() {
         for (const pair of this.flushIterator()) {
             this.buildKvMap(pair);
         }
     }
 
-    public *ingestIterator(char: string) {
+    private *ingestIterator(char: string) {
         if (char.length !== 1) {
             throw new ParserError(
                 'Should ingest 1 character each time. Use `ingestText` for multiple characters',
@@ -91,7 +92,7 @@ export class Parser {
         }
     }
 
-    public *ingestTextIterator(text: string) {
+    private *ingestTextIterator(text: string) {
         for (const char of text) {
             yield* this.ingestIterator(char);
         }
@@ -99,13 +100,7 @@ export class Parser {
         yield* this.ingestIterator('\n');
     }
 
-    public *ingestLinesIterator(lines: Iterable<string>) {
-        for (const line of lines) {
-            yield* this.ingestTextIterator(line);
-        }
-    }
-
-    public *flushIterator() {
+    private *flushIterator() {
         for (const response of this.tokenizer.flush()) {
             yield* this.parseTokenResponse(response);
         }

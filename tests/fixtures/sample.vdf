@@ -1,0 +1,16 @@
+key{"ke\"y2"{key3 "val\\ue3"}
+}
+key4 {
+    none none
+}
+key4 value4 // comment {} "" \\
+key5 {
+    "key\n{6}" "val\tue{6}"
+    "key7" {
+        key8 "value8"
+        key8 {   
+            key9 "value9"
+        }
+    }
+    key9 "value9"
+}

@@ -1,28 +1,29 @@
 {
-  "compilerOptions": {
-      // Enable latest features
-      "lib": ["ESNext"],
-      "target": "ESNext",
-      "module": "ESNext",
-      "moduleDetection": "force",
-      "jsx": "react-jsx",
-      "allowJs": true,
+    "compilerOptions": {
+        // Enable latest features
+        "lib": ["ESNext"],
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleDetection": "force",
+        "jsx": "react-jsx",
+        "allowJs": true,
 
-      // Bundler mode
-      "moduleResolution": "bundler",
-      "allowImportingTsExtensions": true,
-      "verbatimModuleSyntax": true,
-      "noEmit": true,
+        // Bundler mode
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "noEmit": true,
 
-      // Best practices
-      "strict": true,
-      "skipLibCheck": true,
-      "noFallthroughCasesInSwitch": true,
+        // Best practices
+        "strict": true,
+        "skipLibCheck": true,
+        "noFallthroughCasesInSwitch": true,
 
-      // Stricter flags
-      "noPropertyAccessFromIndexSignature": true,
-      "noUncheckedIndexedAccess": true,
-      "noImplicitOverride": true,
-      "noImplicitReturns": true
-  }
+        // Stricter flags
+        "noPropertyAccessFromIndexSignature": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true
+    },
+    "include": ["src/**/*.ts"]
 }
