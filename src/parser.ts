@@ -10,29 +10,29 @@ import {
 } from './tokenizer';
 import { assertNever } from './utils';
 
-export type ParsedKeyValue = {
+export type VdfParsedKeyValue = {
     key: string;
     value: string;
 };
 
-export type ParserOptions = {
-    escape: boolean;
-    useLatestValue: boolean;
+export type VdfParserOptions = {
+    escape?: boolean;
+    useLatestValue?: boolean;
 };
 
-export type KeyValueMap = {
-    [K: string]: string | KeyValueMap;
+export type VdfKeyValueMap = {
+    [K: string]: string | VdfKeyValueMap;
 };
 
-export class ParserError extends Error {}
+export class VdfParserError extends Error {}
 
-export class Parser {
-    public readonly result: KeyValueMap = {};
+export class VdfParser {
+    public readonly result: VdfKeyValueMap = {};
 
     private readonly keyStack: string[] = [];
     private readonly tokenizer: Tokenizer;
 
-    constructor(private readonly options: ParserOptions) {
+    constructor(private readonly options: VdfParserOptions) {
         this.tokenizer = new Tokenizer(options);
     }
 
@@ -44,7 +44,7 @@ export class Parser {
 
     public async parseStream(
         readStream: stream.Readable,
-    ): Promise<KeyValueMap> {
+    ): Promise<VdfKeyValueMap> {
         readStream.setEncoding('utf-8');
         for await (const chunk of readStream) {
             this.ingestText(chunk as string);
@@ -54,7 +54,7 @@ export class Parser {
         return this.result;
     }
 
-    public parseText(text: string): KeyValueMap {
+    public parseText(text: string): VdfKeyValueMap {
         this.ingestText(text);
         this.flush();
         return this.result;
@@ -82,7 +82,7 @@ export class Parser {
 
     private *ingestIterator(char: string) {
         if (char.length !== 1) {
-            throw new ParserError(
+            throw new VdfParserError(
                 'Should ingest 1 character each time. Use `ingestText` for multiple characters',
             );
         }
@@ -138,14 +138,14 @@ export class Parser {
         }
     }
 
-    private buildKvMap(pair: ParsedKeyValue) {
+    private buildKvMap(pair: VdfParsedKeyValue) {
         const keys = pair.key.split('.');
         const lastKey = keys.pop();
         if (!lastKey) {
-            throw new ParserError('Empty key encountered');
+            throw new VdfParserError('Empty key encountered');
         }
 
-        let traversed: KeyValueMap = this.result;
+        let traversed: VdfKeyValueMap = this.result;
         let key;
 
         while ((key = keys.shift())) {

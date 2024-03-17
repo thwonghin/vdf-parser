@@ -35,7 +35,7 @@ export type TokenResponse = { tokenType: TokenType; token: string };
 export type ControlResponse = { controlType: ControlType };
 
 export type TokenizerOption = {
-    escape: boolean;
+    escape?: boolean;
 };
 
 export class TokenizerError extends Error {}
