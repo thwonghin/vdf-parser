@@ -8,7 +8,7 @@
     "description": "A parser for Valve's KeyValue text file format (VDF)",
     "license": "MIT",
     "scripts": {
-        "build": "bun build --target=node ./src/index.ts --outfile=dist/index.js && bun run build:declaration",
+        "build": "rm -rf dist && bun build --target=node ./src/index.ts --outfile=dist/index.js && bun run build:declaration",
         "build:declaration": "tsc --emitDeclarationOnly --project tsconfig.types.json",
         "postbuild": "rimraf tsconfig.types.tsbuildinfo",
         "test": "bun test",
