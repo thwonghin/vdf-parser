@@ -69,10 +69,12 @@ export class Tokenizer {
 
     constructor(private readonly options: TokenizerOption) {}
 
-    public *consume(char: string): Generator<TokenResponse | ControlResponse> {
+    public *ingestChar(
+        char: string,
+    ): Generator<TokenResponse | ControlResponse> {
         if (char.length !== 1) {
             throw new TokenizerError(
-                'Should consume 1 character each time. Use `consumeLine` for multiple characters',
+                'Should ingest 1 character each time. Use `ingestLine` for multiple characters',
             );
         }
 
@@ -88,21 +90,11 @@ export class Tokenizer {
     }
 
     public *flush(): Generator<TokenResponse | ControlResponse> {
-        yield* this.consume('\n');
+        yield* this.ingestChar('\n');
         if (this.buffer !== null) {
             yield* this.parseCharacter(this.buffer, undefined);
             this.buffer = null;
         }
-    }
-
-    public *consumeLine(
-        line: string,
-    ): Generator<TokenResponse | ControlResponse> {
-        for (const char of line) {
-            yield* this.consume(char);
-        }
-
-        yield* this.flush();
     }
 
     private *parseCharacter(
@@ -307,9 +299,6 @@ export class Tokenizer {
             // Do nothing
             return;
         }
-
-        console.log('char', char);
-        console.log('lookAhead', lookAhead);
 
         if (lookAhead === '' || lookAhead === undefined) {
             throw new TokenizerNoCharacterToEscapeError();
