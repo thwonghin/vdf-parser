@@ -1,3 +1,5 @@
+import type stream from 'stream';
+
 import {
     ControlType,
     TokenType,
@@ -33,7 +35,19 @@ export class Parser {
         this.tokenizer = new Tokenizer(options);
     }
 
-    public parse(text: string): KeyValueMap {
+    public async parseStream(
+        readStream: stream.Readable,
+    ): Promise<KeyValueMap> {
+        readStream.setEncoding('utf-8');
+        for await (const chunk of readStream) {
+            this.ingestText(chunk as string);
+        }
+
+        this.flush();
+        return this.result;
+    }
+
+    public parseText(text: string): KeyValueMap {
         this.ingestText(text);
         this.flush();
         return this.result;
