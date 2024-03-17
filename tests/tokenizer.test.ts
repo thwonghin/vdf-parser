@@ -6,7 +6,6 @@ import {
     Tokenizer,
     TokenizerCloseBracketAfterKeyError,
     TokenizerEscapeOutsideQuote,
-    TokenizerNoCharacterToEscapeError,
     TokenizerOpenBracketAfterValueError,
     TokenizerTooManyBracketsError,
     TokenizerUnsupportedEscapeSequenceError,
