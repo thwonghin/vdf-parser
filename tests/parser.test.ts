@@ -243,3 +243,45 @@ describe('parseFile', () => {
         });
     });
 });
+
+describe('iterateKeyValuesFromReadStream', () => {
+    test('should iterate correctly', async () => {
+        const input = `key{"ke\\"y2"{key3 "val\\\\ue3"}
+        }
+        key4 {
+            none none
+        }
+        key4 value4 // comment {} "" \\\\
+        key5 {
+            "key\\n{6}" "val\\tue{6}"
+            "key7" {
+                key8 "value8"
+                key8 {   
+                    key9 "value9"
+                }
+            }
+            key9 "value9"
+        }
+        `;
+
+        const parser = new VdfParser();
+        const result = await Array.fromAsync(
+            parser.iterateKeyValuesFromReadStream(stream.Readable.from(input)),
+        );
+
+        expect(result).toMatchSnapshot();
+    });
+});
+
+describe('iterateKeyValuesFromFile', () => {
+    test('should iterate correctly', async () => {
+        const parser = new VdfParser();
+        const result = await Array.fromAsync(
+            parser.iterateKeyValuesFromFile(
+                path.join(__dirname, 'fixtures', 'sample.vdf'),
+            ),
+        );
+
+        expect(result).toMatchSnapshot();
+    });
+});

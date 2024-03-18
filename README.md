@@ -1,10 +1,13 @@
 # @hinw/vdf-parser
 
-A parser for Valve's KeyValue text file format (VDF) https://developer.valvesoftware.com/wiki/KeyValues
+A parser for Valve's KeyValue text file format (VDF) https://developer.valvesoftware.com/wiki/KeyValues.
+Supports both returning an object OR returning key-value pairs from async iterator / stream.
 
 ## Interfaces
 
-### Parse a file
+### Parse as an object
+
+#### Parse a file
 
 ```ts
 import { VdfParser } from '@hinw/vdf-parser';
@@ -18,7 +21,7 @@ const result = await parser.parseFile(filePath);
 // assert.assertEqual(result, { key: { nested_key: 'value' } });
 ```
 
-### Parse a read stream
+#### Parse a read stream
 
 ```ts
 import stream from 'node:stream';
@@ -31,7 +34,7 @@ const result = await parser.parseStream(readStream);
 // assert.assertEqual(result, { key: { nested_key: 'value' } });
 ```
 
-### Parse a string
+#### Parse a string
 
 ```ts
 import { VdfParser } from '@hinw/vdf-parser';
@@ -41,6 +44,48 @@ const parser = new VdfParser();
 const result = parser.parseText(input);
 
 // assert.assertEqual(result, { key: { nested_key: 'value' } });
+```
+
+### Parse as an iterator / stream
+
+#### Parse a file
+
+```ts
+import { VdfParser } from '@hinw/vdf-parser';
+
+// file content: "key" { "nested_key" "value" }"
+const filePath = 'input/sample.vdf';
+
+const parser = new VdfParser();
+const keyValuePairsIterator = parser.iterateKeyValuesFromFile(filePath);
+
+for await (const pair of keyValuePairsIterator) {
+    // assert.assertEqual(pair, { keys: ['key', 'nested_key'], value: 'value' });
+}
+
+// Or convert the generator as stream
+import stream
+
+const keyValuePairStream = stream.Readable.from(keyValuePairsIterator)
+```
+
+#### Parse a read stream
+
+```ts
+import { VdfParser } from '@hinw/vdf-parser';
+
+const readStream = stream.Readable.from(`"key" { "nested_key" "value" }"`);
+const parser = new VdfParser();
+const keyValuePairsIterator = parser.iterateKeyValuesFromFile(filePath);
+
+for await (const pair of keyValuePairsIterator) {
+    // assert.assertEqual(pair, { keys: ['key', 'nested_key'], value: 'value' });
+}
+
+// Or convert the generator as stream
+import stream
+
+const keyValuePairStream = stream.Readable.from(keyValuePairsIterator)
 ```
 
 ## Options

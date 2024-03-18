@@ -11,7 +11,7 @@ import {
 import { assertNever } from './utils';
 
 export type VdfParsedKeyValue = {
-    key: string;
+    keys: string[];
     value: string;
 };
 
@@ -38,12 +38,47 @@ export class VdfParser {
         this.tokenizer = new Tokenizer(options);
     }
 
+    /**
+     * Parse a file and return an object
+     * @example
+     * ```
+     * import { VdfParser } from '@hinw/vdf-parser';
+     *
+     * // file content: "key" { "nested_key" "value" }"
+     * const filePath = 'input/sample.vdf';
+     * const parser = new VdfParser();
+     * const result = await parser.parseFile(filePath);
+     *
+     * // assert.assertEqual(result, { key: { nested_key: 'value' } });
+     *
+     * ```
+     *
+     * @param {string} filePath The path to the VDF file
+     * @returns {VdfKeyValueMap} The parsed object
+     */
     public async parseFile(filePath: string) {
         return this.parseStream(
             fs.createReadStream(filePath, { encoding: 'utf-8' }),
         );
     }
 
+    /**
+     * Parse a read stream and return an object
+     * @example
+     * ```
+     * import { VdfParser } from '@hinw/vdf-parser';
+     *
+     * const readStream = stream.Readable.from(`"key" { "nested_key" "value" }"`);
+     * const parser = new VdfParser();
+     * const result = await parser.parseStream(readStream)
+     *
+     * // assert.assertEqual(result, { key: { nested_key: 'value' } });
+     *
+     * ```
+     *
+     * @param {stream.Readable} readStream The read stream contains the VDF content
+     * @returns {VdfKeyValueMap} The parsed object
+     */
     public async parseStream(
         readStream: stream.Readable,
     ): Promise<VdfKeyValueMap> {
@@ -57,6 +92,23 @@ export class VdfParser {
         return this.result;
     }
 
+    /**
+     * Parse a text and return an object
+     * @example
+     * ```
+     * import { VdfParser } from '@hinw/vdf-parser';
+     *
+     * const text = `"key" { "nested_key" "value" }"`;
+     * const parser = new VdfParser();
+     * const result = parser.parseText(text)
+     *
+     * // assert.assertEqual(result, { key: { nested_key: 'value' } });
+     *
+     * ```
+     *
+     * @param {string} text The VDF text content
+     * @returns {VdfKeyValueMap} The parsed object
+     */
     public parseText(
         text: string,
         skipAppendingNewline?: boolean,
@@ -65,8 +117,71 @@ export class VdfParser {
         return this.result;
     }
 
+    /**
+     * Parse a file and return an async generator for the key value paris
+     * @example
+     * import { VdfParser } from '@hinw/vdf-parser';
+     * // file content: "key" { "nested_key" "value" }"
+     * const filePath = 'input/sample.vdf';
+     *
+     * const parser = new VdfParser();
+     * const keyValuePairsIterator = parser.iterateKeyValuesFromFile(filePath);
+     *
+     * for await (const pair of keyValuePairsIterator) {
+     *     // assert.assertEqual(pair, { keys: ['key', 'nested_key'], value: 'value' });
+     * }
+     *
+     * // Or convert the generator as stream
+     * import stream
+     * const keyValuePairStream = stream.Readable.from(keyValuePairsIterator)
+     *
+     * @param {string} filePath The path to the VDF file
+     * @returns {AsyncGenerator<VdfParsedKeyValue>} The async generator producing the key value pair
+     */
+    public async *iterateKeyValuesFromFile(
+        filePath: string,
+    ): AsyncGenerator<VdfParsedKeyValue> {
+        yield* this.iterateKeyValuesFromReadStream(
+            fs.createReadStream(filePath, { encoding: 'utf-8' }),
+        );
+    }
+
+    /**
+     * Parse a read stream and return an async generator for the key value paris
+     * @example
+     * import { VdfParser } from '@hinw/vdf-parser';
+     *
+     * const readStream = stream.Readable.from(`"key" { "nested_key" "value" }"`);
+     * const parser = new VdfParser();
+     * const keyValuePairsIterator = parser.iterateKeyValuesFromFile(filePath);
+     *
+     * for await (const pair of keyValuePairsIterator) {
+     *     // assert.assertEqual(pair, { keys: ['key', 'nested_key'], value: 'value' });
+     * }
+     *
+     * // Or convert the generator as stream
+     * import stream
+     * const keyValuePairStream = stream.Readable.from(keyValuePairsIterator)
+     *
+     * @param {stream.Readable} readStream The read stream contains the VDF content
+     * @returns {AsyncGenerator<VdfParsedKeyValue>} The async generator producing the key value pair
+     */
+    public async *iterateKeyValuesFromReadStream(
+        readStream: stream.Readable,
+    ): AsyncGenerator<VdfParsedKeyValue> {
+        readStream.setEncoding('utf-8');
+        for await (const chunk of readStream) {
+            for (const c of chunk) {
+                yield* this.iterateKeyValues(c as string);
+            }
+        }
+
+        yield* this.iterateKeyValues('\n');
+        yield* this.flushTokenizer();
+    }
+
     private ingestChar(char: string) {
-        for (const pair of this.ingestIterator(char)) {
+        for (const pair of this.iterateKeyValues(char)) {
             this.buildKvMap(pair);
         }
     }
@@ -82,12 +197,12 @@ export class VdfParser {
     }
 
     private flush() {
-        for (const pair of this.flushIterator()) {
+        for (const pair of this.flushTokenizer()) {
             this.buildKvMap(pair);
         }
     }
 
-    private *ingestIterator(char: string) {
+    private *iterateKeyValues(char: string) {
         if (char.length !== 1) {
             throw new VdfParserError(
                 'Should ingest 1 character each time. Use `ingestText` for multiple characters',
@@ -99,15 +214,7 @@ export class VdfParser {
         }
     }
 
-    private *ingestTextIterator(text: string) {
-        for (const char of text) {
-            yield* this.ingestIterator(char);
-        }
-
-        yield* this.ingestIterator('\n');
-    }
-
-    private *flushIterator() {
+    private *flushTokenizer() {
         for (const response of this.tokenizer.flush()) {
             yield* this.parseTokenResponse(response);
         }
@@ -121,7 +228,7 @@ export class VdfParser {
                     break;
                 case TokenType.VALUE:
                     yield {
-                        key: this.keyStack.join('.'),
+                        keys: [...this.keyStack],
                         value: response.token,
                     };
                     this.keyStack.pop();
@@ -146,8 +253,7 @@ export class VdfParser {
     }
 
     private buildKvMap(pair: VdfParsedKeyValue) {
-        const keys = pair.key.split('.');
-        const lastKey = keys.pop();
+        const lastKey = pair.keys.pop();
         if (!lastKey) {
             throw new VdfParserError('Empty key encountered');
         }
@@ -155,7 +261,7 @@ export class VdfParser {
         let traversed: VdfKeyValueMap = this.result;
         let key;
 
-        while ((key = keys.shift())) {
+        while ((key = pair.keys.shift())) {
             const tempTraversed = traversed[key];
 
             if (tempTraversed === undefined) {
