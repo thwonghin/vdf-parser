@@ -395,12 +395,11 @@ export class Tokenizer {
             ESCAPE_SEQUENCES__NO_SLASH.includes(charWithLookAhead);
 
         if (keepSlash === removeSlash) {
-            throw new TokenizerUnsupportedEscapeSequenceError(
-                charWithLookAhead,
-                this.currentLineNumber,
-                this.currentPosition,
-                this.debugBuffer.join(''),
-            );
+            // Unsupported slash sequence - handle like normal
+            this.handleNormalCharacter(char);
+            this.handleNormalCharacter(lookAhead);
+            this.currentPosition += 2;
+            return;
         }
 
         const charToPush = keepSlash ? charWithLookAhead : lookAhead;

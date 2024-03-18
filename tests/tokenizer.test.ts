@@ -190,6 +190,18 @@ test('should escape correctly', () => {
     ]);
 });
 
+test('should not throw when the character is unsupported to escape', () => {
+    const tokenizer = new Tokenizer();
+    const input = `"key\\e"`;
+    const tokens = [...ingestText(tokenizer, input)];
+    expect(tokens).toEqual([
+        {
+            token: 'key\\e',
+            tokenType: TokenType.KEY,
+        },
+    ]);
+});
+
 test('should ignore comment', () => {
     const tokenizer = new Tokenizer();
     const input = `key value//comment
@@ -629,20 +641,6 @@ test('should throw when ending too many nest levels', () => {
     }
 
     expect(error instanceof TokenizerTooManyBracketsError).toBeTrue();
-});
-
-test('should throw when the character is unsupported to escape', () => {
-    const tokenizer = new Tokenizer();
-    const input = `"key\\e"{}`;
-    let error = null;
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...ingestText(tokenizer, input)];
-    } catch (err) {
-        error = err;
-    }
-
-    expect(error instanceof TokenizerUnsupportedEscapeSequenceError).toBeTrue();
 });
 
 test('should throw when the escape after quote', () => {
