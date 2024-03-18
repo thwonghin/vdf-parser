@@ -1,6 +1,6 @@
 # @hinw/vdf-parser
 
-A parser for Valve's KeyValue text file format (VDF) https://developer.valvesoftware.com/wiki/KeyValues.
+A JavaScript parser for Valve's KeyValue text file format (VDF) https://developer.valvesoftware.com/wiki/KeyValues.
 
 Support both returning an object OR returning key-value pairs from async iterator / stream.
 
