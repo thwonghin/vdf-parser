@@ -237,7 +237,7 @@ describe('parseFile', () => {
                 key7: {
                     key8: 'value8',
                 },
-                key9: 'value9',
+                key9: 'Фула (𞤊𞤵𞤤𞤬𞤵𞤤𞤣𞤫)',
                 你好: '世界',
             },
         });
@@ -338,7 +338,7 @@ describe('iterateKeyValuesFromFile', () => {
             },
             {
                 keys: ['key5', 'key9'],
-                value: 'value9',
+                value: 'Фула (𞤊𞤵𞤤𞤬𞤵𞤤𞤣𞤫)',
             },
             {
                 keys: ['key5', '你好'],

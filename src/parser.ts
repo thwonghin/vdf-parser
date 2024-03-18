@@ -203,7 +203,7 @@ export class VdfParser {
     }
 
     private *iterateKeyValues(char: string) {
-        if (char.length !== 1) {
+        if ([...char].length !== 1) {
             throw new VdfParserError(
                 'Should ingest 1 character each time. Use `ingestText` for multiple characters',
             );
