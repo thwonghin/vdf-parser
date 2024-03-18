@@ -45,16 +45,18 @@ const result = parser.parseText(input);
 
 ## Options
 
-### Enable escape string
+### Escape sequence
+
+By default, the parser will handle escape sequence. To disable this behavior, you can set `disableEscape` to `true`
 
 ```ts
 import { VdfParser } from '@hinw/vdf-parser';
 
-const input = `"\"quoted key\"" "value"`;
-const parser = new VdfParser({ escape: true });
+const input = `"\\"quoted key\\"" "value"`;
+const parser = new VdfParser({ disableEscape: true });
 const result = parser.parseText(input);
 
-// assert.assertEqual(result, { '"quoted key"': 'value' });
+// assert.assertEqual(result, { '\\"quoted key\\"': 'value' });
 ```
 
 ### Handling duplicate keys
@@ -71,7 +73,7 @@ const result = parser.parseText(input);
 // assert.assertEqual(result, { key: { nested_key: 'value' } });
 ```
 
-However, you can set `useLatestValue` option to use the latest seen value
+However, you can set `useLatestValue` to `true` to use the latest seen value
 
 ```ts
 import { VdfParser } from '@hinw/vdf-parser';
