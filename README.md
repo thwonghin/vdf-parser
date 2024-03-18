@@ -1,7 +1,15 @@
 # @hinw/vdf-parser
 
 A parser for Valve's KeyValue text file format (VDF) https://developer.valvesoftware.com/wiki/KeyValues.
-Supports both returning an object OR returning key-value pairs from async iterator / stream.
+
+Support both returning an object OR returning key-value pairs from async iterator / stream.
+
+## Installation
+
+Pick your favorite package manager. For example using `npm`:
+```
+npm install @hinw/vdf-parser
+```
 
 ## Interfaces
 
@@ -92,7 +100,7 @@ const keyValuePairStream = stream.Readable.from(keyValuePairsIterator)
 
 ### Escape sequence
 
-By default, the parser will handle escape sequence. To disable this behavior, you can set `disableEscape` to `true`
+By default, the parser will handle escape sequence. To disable this behavior, you can set `disableEscape` to `true`.
 
 ```ts
 import { VdfParser } from '@hinw/vdf-parser';
@@ -104,9 +112,9 @@ const result = parser.parseText(input);
 // assert.assertEqual(result, { '\\"quoted key\\"': 'value' });
 ```
 
-### Handling duplicate keys
+### Handling duplicated keys
 
-By default, the parser will use the earliest seen value for duplicated keys
+By default, the parser will use the earliest seen value for the duplicated keys.
 
 ```ts
 import { VdfParser } from '@hinw/vdf-parser';
@@ -118,7 +126,7 @@ const result = parser.parseText(input);
 // assert.assertEqual(result, { key: { nested_key: 'value' } });
 ```
 
-However, you can set `useLatestValue` to `true` to use the latest seen value
+However, you can set `useLatestValue` to `true` to use the latest seen value instead.
 
 ```ts
 import { VdfParser } from '@hinw/vdf-parser';
