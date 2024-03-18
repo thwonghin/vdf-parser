@@ -4,7 +4,7 @@ key4 {
     none none
 }
 key4 value4 // comment {} "" \\
-key5 {
+key5 { 
     "key\n{6}" "val\tue{6}"
     "key7" {
         key8 "value8"
@@ -13,4 +13,5 @@ key5 {
         }
     }
     key9 "value9"
+    你好 世界
 }

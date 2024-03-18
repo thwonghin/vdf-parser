@@ -16,8 +16,10 @@ export type VdfParsedKeyValue = {
 };
 
 export type VdfParserOptions = {
-    escape?: boolean;
+    disableEscape?: boolean;
     useLatestValue?: boolean;
+    verbose?: boolean;
+    debugBufferSize?: number;
 };
 
 export type VdfKeyValueMap = {
@@ -32,7 +34,7 @@ export class VdfParser {
     private readonly keyStack: string[] = [];
     private readonly tokenizer: Tokenizer;
 
-    constructor(private readonly options: VdfParserOptions) {
+    constructor(private readonly options: VdfParserOptions = {}) {
         this.tokenizer = new Tokenizer(options);
     }
 
@@ -47,16 +49,19 @@ export class VdfParser {
     ): Promise<VdfKeyValueMap> {
         readStream.setEncoding('utf-8');
         for await (const chunk of readStream) {
-            this.ingestText(chunk as string);
+            this.ingestText(chunk as string, true);
         }
 
+        this.ingestChar('\n');
         this.flush();
         return this.result;
     }
 
-    public parseText(text: string): VdfKeyValueMap {
-        this.ingestText(text);
-        this.flush();
+    public parseText(
+        text: string,
+        skipAppendingNewline?: boolean,
+    ): VdfKeyValueMap {
+        this.ingestText(text, skipAppendingNewline);
         return this.result;
     }
 
@@ -66,12 +71,14 @@ export class VdfParser {
         }
     }
 
-    private ingestText(text: string) {
+    private ingestText(text: string, skipAppendingNewline?: boolean) {
         for (const char of text) {
             this.ingestChar(char);
         }
 
-        this.ingestChar('\n');
+        if (!skipAppendingNewline) {
+            this.ingestChar('\n');
+        }
     }
 
     private flush() {

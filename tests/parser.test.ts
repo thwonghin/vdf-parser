@@ -20,7 +20,7 @@ describe('parseText', () => {
         }
         `;
 
-        const parser = new VdfParser({ escape: true, useLatestValue: true });
+        const parser = new VdfParser({ useLatestValue: true });
         const result = parser.parseText(input);
 
         expect(result).toEqual({
@@ -53,7 +53,10 @@ describe('parseText', () => {
         }
         `;
 
-        const parser = new VdfParser({ useLatestValue: true });
+        const parser = new VdfParser({
+            disableEscape: true,
+            useLatestValue: true,
+        });
         const result = parser.parseText(input);
 
         expect(result).toEqual({
@@ -92,7 +95,7 @@ describe('parseText', () => {
         }
         `;
 
-        const parser = new VdfParser({ escape: true, useLatestValue: true });
+        const parser = new VdfParser({ useLatestValue: true });
         const result = parser.parseText(input);
 
         expect(result).toEqual({
@@ -133,7 +136,7 @@ describe('parseText', () => {
         }
         `;
 
-        const parser = new VdfParser({ escape: true });
+        const parser = new VdfParser();
         const result = parser.parseText(input);
 
         expect(result).toEqual({
@@ -158,7 +161,7 @@ describe('parseText', () => {
     test('should throw tokenizer error if malformed', () => {
         const input = `key {}}`;
 
-        const parser = new VdfParser({ escape: true });
+        const parser = new VdfParser();
         let error;
         try {
             parser.parseText(input);
@@ -190,7 +193,7 @@ describe('parseStream', () => {
         }
         `;
 
-        const parser = new VdfParser({ escape: true });
+        const parser = new VdfParser();
         const result = await parser.parseStream(stream.Readable.from(input));
 
         expect(result).toEqual({
@@ -215,7 +218,7 @@ describe('parseStream', () => {
 
 describe('parseFile', () => {
     test('should parse correctly', async () => {
-        const parser = new VdfParser({ escape: true });
+        const parser = new VdfParser();
         const result = await parser.parseFile(
             path.join(__dirname, 'fixtures', 'sample.vdf'),
         );
@@ -235,6 +238,7 @@ describe('parseFile', () => {
                     key8: 'value8',
                 },
                 key9: 'value9',
+                你好: '世界',
             },
         });
     });

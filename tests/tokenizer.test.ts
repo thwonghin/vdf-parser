@@ -21,7 +21,7 @@ function* ingestText(tokenizer: Tokenizer, text: string) {
 }
 
 test('should parse one line correctly', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `key value`;
 
     const tokens = [...ingestText(tokenizer, input)];
@@ -38,7 +38,7 @@ test('should parse one line correctly', () => {
 });
 
 test('should parse one line with with quotes correctly', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `"key" "value"`;
 
     const tokens = [...ingestText(tokenizer, input)];
@@ -55,7 +55,7 @@ test('should parse one line with with quotes correctly', () => {
 });
 
 test('should parse with no space correctly', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `key"value"`;
 
     const tokens = [...ingestText(tokenizer, input)];
@@ -72,7 +72,7 @@ test('should parse with no space correctly', () => {
 });
 
 test('should parse no space for two quoted tokens correctly', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `"key""value"`;
 
     const tokens = [...ingestText(tokenizer, input)];
@@ -89,7 +89,7 @@ test('should parse no space for two quoted tokens correctly', () => {
 });
 
 test('should parse multiple tokens with no space correctly', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `key"value""key2"value2`;
 
     const tokens = [...ingestText(tokenizer, input)];
@@ -114,7 +114,7 @@ test('should parse multiple tokens with no space correctly', () => {
 });
 
 test('should parse multiple line with with quotes correctly', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `"key" "value"\r\n\r\nanother_key     "another_value"
     `;
 
@@ -139,9 +139,26 @@ test('should parse multiple line with with quotes correctly', () => {
     ]);
 });
 
+test('should parse having new line with quotes correctly', () => {
+    const tokenizer = new Tokenizer();
+    const input = `"key" "value\nnext_line"`;
+
+    const tokens = [...ingestText(tokenizer, input)];
+    expect(tokens).toEqual([
+        {
+            token: 'key',
+            tokenType: TokenType.KEY,
+        },
+        {
+            token: 'value\nnext_line',
+            tokenType: TokenType.VALUE,
+        },
+    ]);
+});
+
 test('should parse backward slash without escape correctly', () => {
-    const tokenizer = new Tokenizer({ escape: false });
-    const input = `\\key "val\\ue"`;
+    const tokenizer = new Tokenizer({ disableEscape: true });
+    const input = `\\key "first_line\\nsecond_line"`;
 
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
@@ -150,14 +167,14 @@ test('should parse backward slash without escape correctly', () => {
             tokenType: TokenType.KEY,
         },
         {
-            token: 'val\\ue',
+            token: 'first_line\\nsecond_line',
             tokenType: TokenType.VALUE,
         },
     ]);
 });
 
 test('should escape correctly', () => {
-    const tokenizer = new Tokenizer({ escape: true });
+    const tokenizer = new Tokenizer();
     const input = `"\\nke\\ty" "v\\"al\\\\ue"`;
 
     const tokens = [...ingestText(tokenizer, input)];
@@ -174,7 +191,7 @@ test('should escape correctly', () => {
 });
 
 test('should ignore comment', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `key value//comment
     // another comment \\ {} "test"
     key2 value2
@@ -212,7 +229,7 @@ test('should ignore comment', () => {
 });
 
 test('should handle empty nest levels', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `key {}`;
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
@@ -230,7 +247,7 @@ test('should handle empty nest levels', () => {
 });
 
 test('should nest multiple levels', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `key{key2{key3 value3}
     }
     key4 value4
@@ -329,7 +346,7 @@ test('should nest multiple levels', () => {
 });
 
 test('should handle all happy cases with escape', () => {
-    const tokenizer = new Tokenizer({ escape: true });
+    const tokenizer = new Tokenizer();
     const input = `key{"ke\\"y2"{key3 "val\\\\ue3"}
     }
     key4 value4 // comment {} "" \\\\
@@ -428,7 +445,7 @@ test('should handle all happy cases with escape', () => {
 });
 
 test('should handle all happy cases without escape', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer({ disableEscape: true });
     const input = `key{"ke\\y2"{key3 "val\\\\ue3"}
     }
     key4 value4 // comment {} "" \\\\
@@ -526,8 +543,26 @@ test('should handle all happy cases without escape', () => {
     ]);
 });
 
+test('should handle unicode', () => {
+    const tokenizer = new Tokenizer();
+    const input = `你好 世界test`;
+
+    const result = [...ingestText(tokenizer, input)];
+
+    expect(result).toEqual([
+        {
+            token: '你好',
+            tokenType: TokenType.KEY,
+        },
+        {
+            token: '世界test',
+            tokenType: TokenType.VALUE,
+        },
+    ]);
+});
+
 test('should throw with misplaced open bracket after non quoted value', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `"key"value{`;
     let error = null;
     try {
@@ -537,11 +572,11 @@ test('should throw with misplaced open bracket after non quoted value', () => {
         error = err;
     }
 
-    expect(error).toEqual(new TokenizerOpenBracketAfterValueError());
+    expect(error instanceof TokenizerOpenBracketAfterValueError).toBeTrue();
 });
 
 test('should throw with misplaced open bracket after quoted value', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `"key""value"{`;
     let error = null;
     try {
@@ -551,11 +586,11 @@ test('should throw with misplaced open bracket after quoted value', () => {
         error = err;
     }
 
-    expect(error).toEqual(new TokenizerOpenBracketAfterValueError());
+    expect(error instanceof TokenizerOpenBracketAfterValueError).toBeTrue();
 });
 
 test('should throw with misplaced close bracket after non quoted key', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `key}`;
     let error = null;
     try {
@@ -565,11 +600,11 @@ test('should throw with misplaced close bracket after non quoted key', () => {
         error = err;
     }
 
-    expect(error).toEqual(new TokenizerCloseBracketAfterKeyError());
+    expect(error instanceof TokenizerCloseBracketAfterKeyError).toBeTrue();
 });
 
 test('should throw with misplaced close bracket after quoted key', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `"key"}`;
     let error = null;
     try {
@@ -579,11 +614,11 @@ test('should throw with misplaced close bracket after quoted key', () => {
         error = err;
     }
 
-    expect(error).toEqual(new TokenizerCloseBracketAfterKeyError());
+    expect(error instanceof TokenizerCloseBracketAfterKeyError).toBeTrue();
 });
 
 test('should throw when ending too many nest levels', () => {
-    const tokenizer = new Tokenizer({ escape: false });
+    const tokenizer = new Tokenizer();
     const input = `"key"{}}`;
     let error = null;
     try {
@@ -593,11 +628,11 @@ test('should throw when ending too many nest levels', () => {
         error = err;
     }
 
-    expect(error).toEqual(new TokenizerTooManyBracketsError());
+    expect(error instanceof TokenizerTooManyBracketsError).toBeTrue();
 });
 
 test('should throw when the character is unsupported to escape', () => {
-    const tokenizer = new Tokenizer({ escape: true });
+    const tokenizer = new Tokenizer();
     const input = `"key\\e"{}`;
     let error = null;
     try {
@@ -607,11 +642,11 @@ test('should throw when the character is unsupported to escape', () => {
         error = err;
     }
 
-    expect(error).toEqual(new TokenizerUnsupportedEscapeSequenceError('\\e'));
+    expect(error instanceof TokenizerUnsupportedEscapeSequenceError).toBeTrue();
 });
 
 test('should throw when the escape after quote', () => {
-    const tokenizer = new Tokenizer({ escape: true });
+    const tokenizer = new Tokenizer();
     const input = `key\\"{}`;
     let error = null;
     try {
@@ -621,5 +656,5 @@ test('should throw when the escape after quote', () => {
         error = err;
     }
 
-    expect(error).toEqual(new TokenizerEscapeOutsideQuote());
+    expect(error instanceof TokenizerEscapeOutsideQuote).toBeTrue();
 });
