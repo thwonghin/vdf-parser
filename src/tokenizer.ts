@@ -15,7 +15,9 @@ const ESCAPE = '\\';
 const ESCAPE_SEQUENCES__KEEP_SLASH = ['\\n', '\\t'];
 const ESCAPE_SEQUENCES__NO_SLASH = ['\\\\', '\\"'];
 const QUOTE = '"';
-const WHITE_SPACE_CHARS = [' ', '\t', String.fromCharCode(65279)];
+const WHITE_SPACE = ' ';
+const TAB_SPACE = '\t';
+const BOM = String.fromCharCode(65279);
 const NEW_LINE_CHAR = '\n';
 const CARRIAGE_RETURN_CHAR = '\r';
 const BRACKET_OPEN = '{';
@@ -143,32 +145,47 @@ export class Tokenizer {
         char: string,
         lookahead: string | undefined,
     ): Generator<TokenResponse | ControlResponse> {
-        if (char === CARRIAGE_RETURN_CHAR) {
-            // Ignore. Do nothing
-            return;
-        }
+        switch (char) {
+            case CARRIAGE_RETURN_CHAR:
+            case BOM:
+                // Ignore. Do nothing
+                break;
+            case NEW_LINE_CHAR:
+                yield* this.handleNewLine(char);
+                break;
+            case WHITE_SPACE:
+            case TAB_SPACE:
+                yield* this.handleWhitespace(char);
+                break;
+            case QUOTE:
+                yield* this.handleQuote();
+                break;
+            case BRACKET_OPEN:
+                yield* this.handleBracketOpen(char);
+                break;
+            case BRACKET_CLOSE:
+                yield* this.handleBracketClose(char);
+                break;
+            case ESCAPE:
+                if (this.options.disableEscape) {
+                    this.handleNormalCharacter(char);
+                } else {
+                    this.handleEscape(char, lookahead);
+                    this.buffer = null;
+                }
 
-        if (char === NEW_LINE_CHAR) {
-            yield* this.handleNewLine(char);
-        } else if (WHITE_SPACE_CHARS.includes(char)) {
-            yield* this.handleWhitespace(char);
-        } else if (char === QUOTE) {
-            yield* this.handleQuote();
-        } else if (char === BRACKET_OPEN) {
-            yield* this.handleBracketOpen(char);
-        } else if (char === BRACKET_CLOSE) {
-            yield* this.handleBracketClose(char);
-        } else if (char === ESCAPE) {
-            if (this.options.disableEscape) {
+                break;
+            case COMMENT_START[0]:
+                if ([char, lookahead].join('') === COMMENT_START) {
+                    yield* this.handleComment();
+                    this.buffer = null;
+                } else {
+                    this.handleNormalCharacter(char);
+                }
+
+                break;
+            default:
                 this.handleNormalCharacter(char);
-            } else {
-                this.handleEscape(char, lookahead);
-                this.buffer = null;
-            }
-        } else if ([char, lookahead].join('') === COMMENT_START) {
-            yield* this.handleComment();
-        } else {
-            this.handleNormalCharacter(char);
         }
 
         if (this.options.verbose) {
