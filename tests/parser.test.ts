@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import stream from 'node:stream';
 
@@ -6,8 +7,62 @@ import { test, expect, describe } from 'bun:test';
 import { VdfParser } from '../src/parser';
 import { TokenizerError } from '../src/tokenizer';
 
+const FIXTURE_OBJ_RESULT = {
+    key: {
+        'ke"y2': {
+            key3: 'val\\ue3',
+        },
+    },
+    key4: {
+        none: 'none',
+    },
+    key5: {
+        'key\\n{6}': 'val\\tue{6}',
+        key7: {
+            key8: 'value8',
+        },
+        key9: 'Фула (𞤊𞤵𞤤𞤬𞤵𞤤𞤣𞤫)',
+        你好: '世界',
+    },
+};
+
+const FIXTURE_PAIRS_RESULT = [
+    {
+        keyParts: ['key', 'ke"y2', 'key3'],
+        value: 'val\\ue3',
+    },
+    {
+        keyParts: ['key4', 'none'],
+        value: 'none',
+    },
+    {
+        keyParts: ['key4'],
+        value: 'value4',
+    },
+    {
+        keyParts: ['key5', 'key\\n{6}'],
+        value: 'val\\tue{6}',
+    },
+    {
+        keyParts: ['key5', 'key7', 'key8'],
+        value: 'value8',
+    },
+    {
+        keyParts: ['key5', 'key7', 'key8', 'key9'],
+        value: 'value9',
+    },
+    {
+        keyParts: ['key5', 'key9'],
+        value: 'Фула (𞤊𞤵𞤤𞤬𞤵𞤤𞤣𞤫)',
+    },
+    {
+        keyParts: ['key5', '你好'],
+        value: '世界',
+    },
+];
+
 describe('parseText', () => {
-    test('should parse correctly with escape', () => {
+    test('should parse correctly with escape', async () => {
         const input = `key{"ke\\"y2"{key3 "val\\\\ue3"}
         }
         key4 value4 // comment {} "" \\\\
@@ -21,7 +76,7 @@ describe('parseText', () => {
         `;
 
         const parser = new VdfParser({ useLatestValue: true });
-        const result = parser.parseText(input);
+        const result = await parser.parseText(input);
 
         expect(result).toEqual({
             key: {
@@ -40,7 +95,7 @@ describe('parseText', () => {
         });
     });
 
-    test('should parse correctly without escape', () => {
+    test('should parse correctly without escape', async () => {
         const input = `key{"ke\\y2"{key3 "val\\\\ue3"}
         }
         key4 value4 // comment {} "" \\\\
@@ -57,7 +112,7 @@ describe('parseText', () => {
             disableEscape: true,
             useLatestValue: true,
         });
-        const result = parser.parseText(input);
+        const result = await parser.parseText(input);
 
         expect(result).toEqual({
             key: {
@@ -76,7 +131,7 @@ describe('parseText', () => {
         });
     });
 
-    test('should parse correctly with latest value', () => {
+    test('should parse correctly with latest value', async () => {
         const input = `key{"ke\\"y2"{key3 "val\\\\ue3"}
         }
         key4 {
@@ -87,7 +142,7 @@ describe('parseText', () => {
             "key\\n{6}" "val\\tue{6}"
             "key7" {
                 key8 "value8"
-                key8 {   
+                key8 {
                     key9 "value9"
                 }
             }
@@ -96,7 +151,7 @@ describe('parseText', () => {
         `;
 
         const parser = new VdfParser({ useLatestValue: true });
-        const result = parser.parseText(input);
+        const result = await parser.parseText(input);
 
         expect(result).toEqual({
             key: {
@@ -117,7 +172,7 @@ describe('parseText', () => {
         });
     });
 
-    test('should parse correctly without using latest value', () => {
+    test('should parse correctly without using latest value', async () => {
         const input = `key{"ke\\"y2"{key3 "val\\\\ue3"}
         }
         key4 {
@@ -128,7 +183,7 @@ describe('parseText', () => {
             "key\\n{6}" "val\\tue{6}"
             "key7" {
                 key8 "value8"
-                key8 {   
+                key8 {
                     key9 "value9"
                 }
             }
@@ -137,7 +192,7 @@ describe('parseText', () => {
         `;
 
         const parser = new VdfParser();
-        const result = parser.parseText(input);
+        const result = await parser.parseText(input);
 
         expect(result).toEqual({
             key: {
@@ -158,13 +213,13 @@ describe('parseText', () => {
         });
     });
 
-    test('should throw tokenizer error if malformed', () => {
+    test('should throw tokenizer error if malformed', async () => {
         const input = `key {}}`;
 
         const parser = new VdfParser();
         let error;
         try {
-            parser.parseText(input);
+            await parser.parseText(input);
         } catch (err) {
             error = err;
         }
@@ -185,7 +240,7 @@ describe('parseStream', () => {
             "key\\n{6}" "val\\tue{6}"
             "key7" {
                 key8 "value8"
-                key8 {   
+                key8 {
                     key9 "value9"
                 }
             }
@@ -223,127 +278,53 @@ describe('parseFile', () => {
             path.join(__dirname, 'fixtures', 'sample.vdf'),
         );
 
-        expect(result).toEqual({
-            key: {
-                'ke"y2': {
-                    key3: 'val\\ue3',
-                },
-            },
-            key4: {
-                none: 'none',
-            },
-            key5: {
-                'key\\n{6}': 'val\\tue{6}',
-                key7: {
-                    key8: 'value8',
-                },
-                key9: 'Фула (𞤊𞤵𞤤𞤬𞤵𞤤𞤣𞤫)',
-                你好: '世界',
-            },
-        });
+        expect(result).toEqual(FIXTURE_OBJ_RESULT);
     });
 });
 
-describe('iterateKeyValuesFromReadStream', () => {
-    test('should iterate correctly', async () => {
-        const input = `key{"ke\\"y2"{key3 "val\\\\ue3"}
-        }
-        key4 {
-            none none
-        }
-        key4 value4 // comment {} "" \\\\
-        key5 {
-            "key\\n{6}" "val\\tue{6}"
-            "key7" {
-                key8 "value8"
-                key8 {   
-                    key9 "value9"
-                }
-            }
-            key9 "value9"
-        }
-        `;
-
+describe('condensePairsAsync', () => {
+    test('should return result correctly', async () => {
         const parser = new VdfParser();
-        const result = await Array.fromAsync(
-            parser.iterateKeyValuesFromReadStream(stream.Readable.from(input)),
+
+        const readStream = fs.createReadStream(
+            path.join(__dirname, 'fixtures', 'sample.vdf'),
+            { encoding: 'utf-8' },
         );
 
-        expect(result).toEqual([
-            {
-                keys: ['key', 'ke"y2', 'key3'],
-                value: 'val\\ue3',
-            },
-            {
-                keys: ['key4', 'none'],
-                value: 'none',
-            },
-            {
-                keys: ['key4'],
-                value: 'value4',
-            },
-            {
-                keys: ['key5', 'key\\n{6}'],
-                value: 'val\\tue{6}',
-            },
-            {
-                keys: ['key5', 'key7', 'key8'],
-                value: 'value8',
-            },
-            {
-                keys: ['key5', 'key7', 'key8', 'key9'],
-                value: 'value9',
-            },
-            {
-                keys: ['key5', 'key9'],
-                value: 'value9',
-            },
-        ]);
+        const result = await parser.condensePairsAsync(readStream.pipe(parser));
+
+        expect(result).toEqual(FIXTURE_OBJ_RESULT);
     });
 });
 
-describe('iterateKeyValuesFromFile', () => {
-    test('should iterate correctly', async () => {
+describe('condensePairs', () => {
+    test('should return result correctly', async () => {
         const parser = new VdfParser();
-        const result = await Array.fromAsync(
-            parser.iterateKeyValuesFromFile(
-                path.join(__dirname, 'fixtures', 'sample.vdf'),
-            ),
+
+        const readStream = fs.createReadStream(
+            path.join(__dirname, 'fixtures', 'sample.vdf'),
+            { encoding: 'utf-8' },
         );
 
-        expect(result).toEqual([
-            {
-                keys: ['key', 'ke"y2', 'key3'],
-                value: 'val\\ue3',
-            },
-            {
-                keys: ['key4', 'none'],
-                value: 'none',
-            },
-            {
-                keys: ['key4'],
-                value: 'value4',
-            },
-            {
-                keys: ['key5', 'key\\n{6}'],
-                value: 'val\\tue{6}',
-            },
-            {
-                keys: ['key5', 'key7', 'key8'],
-                value: 'value8',
-            },
-            {
-                keys: ['key5', 'key7', 'key8', 'key9'],
-                value: 'value9',
-            },
-            {
-                keys: ['key5', 'key9'],
-                value: 'Фула (𞤊𞤵𞤤𞤬𞤵𞤤𞤣𞤫)',
-            },
-            {
-                keys: ['key5', '你好'],
-                value: '世界',
-            },
-        ]);
+        const paris = await Array.fromAsync(readStream.pipe(parser));
+
+        const result = parser.condensePairs(paris);
+
+        expect(result).toEqual(FIXTURE_OBJ_RESULT);
+    });
+});
+
+describe('stream pipe', () => {
+    test('should return key value pairs correctly', async () => {
+        const parser = new VdfParser();
+
+        const readStream = fs.createReadStream(
+            path.join(__dirname, 'fixtures', 'sample.vdf'),
+            { encoding: 'utf-8' },
+        );
+
+        const result = await Array.fromAsync(readStream.pipe(parser));
+
+        expect(result).toEqual(FIXTURE_PAIRS_RESULT);
     });
 });

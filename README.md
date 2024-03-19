@@ -7,7 +7,8 @@ Support both returning an object OR returning key-value pairs from async iterato
 ## Installation
 
 Pick your favorite package manager. For example using `npm`:
-```
+
+```bash
 npm install @hinw/vdf-parser
 ```
 
@@ -49,51 +50,45 @@ import { VdfParser } from '@hinw/vdf-parser';
 
 const input = `"key" { "nested_key" "value" }"`;
 const parser = new VdfParser();
-const result = parser.parseText(input);
+const result = await parser.parseText(input);
 
 // assert.assertEqual(result, { key: { nested_key: 'value' } });
 ```
 
-### Parse as an iterator / stream
+### Stream interface related
 
-#### Parse a file
+#### `pipe` to the parser and build the object from the stream output
 
 ```ts
+import fs from 'node:fs'
 import { VdfParser } from '@hinw/vdf-parser';
 
 // file content: "key" { "nested_key" "value" }"
 const filePath = 'input/sample.vdf';
 
 const parser = new VdfParser();
-const keyValuePairsIterator = parser.iterateKeyValuesFromFile(filePath);
+const fileStream = fs.createReadStream(filePath)
+const parserStream = fileStream.pipe(parser)
 
-for await (const pair of keyValuePairsIterator) {
-    // assert.assertEqual(pair, { keys: ['key', 'nested_key'], value: 'value' });
+for await (const pair of parserStream) {
+    // assert.assertEqual(pair, { keyParts: ['key', 'nested_key'], value: 'value' });
 }
-
-// Or convert the generator as stream
-import stream
-
-const keyValuePairStream = stream.Readable.from(keyValuePairsIterator)
 ```
 
-#### Parse a read stream
+#### Condense the pairs to an object using `condensePairs` and `condensePairsAsync`
 
 ```ts
-import { VdfParser } from '@hinw/vdf-parser';
+// You can build the object from the stream using async iterator interface:
+const fileStream = fs.createReadStream(filePath)
+const parserStream = fileStream.pipe(parser)
+const result = await parser.condensePairsAsync(parserStream)
 
-const readStream = stream.Readable.from(`"key" { "nested_key" "value" }"`);
-const parser = new VdfParser();
-const keyValuePairsIterator = parser.iterateKeyValuesFromFile(filePath);
+// Or you can store the pairs somewhere, and build it afterwards with normal iterator interface:
+const fileStream = fs.createReadStream(filePath)
+const parserStream = fileStream.pipe(parser)
+const pairs = await Array.fromAsync(parserStream)
+const result = parser.condensePairs(pairs)
 
-for await (const pair of keyValuePairsIterator) {
-    // assert.assertEqual(pair, { keys: ['key', 'nested_key'], value: 'value' });
-}
-
-// Or convert the generator as stream
-import stream
-
-const keyValuePairStream = stream.Readable.from(keyValuePairsIterator)
 ```
 
 ## Options
