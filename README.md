@@ -102,7 +102,7 @@ import { VdfParser } from '@hinw/vdf-parser';
 
 const input = `"\\"quoted key\\"" "value"`;
 const parser = new VdfParser({ disableEscape: true });
-const result = parser.parseText(input);
+const result = await parser.parseText(input);
 
 // assert.assertEqual(result, { '\\"quoted key\\"': 'value' });
 ```
@@ -116,7 +116,7 @@ import { VdfParser } from '@hinw/vdf-parser';
 
 const input = `"key" { "nested_key" "value" }" "key" "value"`;
 const parser = new VdfParser();
-const result = parser.parseText(input);
+const result = await parser.parseText(input);
 
 // assert.assertEqual(result, { key: { nested_key: 'value' } });
 ```
@@ -128,7 +128,7 @@ import { VdfParser } from '@hinw/vdf-parser';
 
 const input = `"key" { "nested_key" "value" }" "key" "value"`;
 const parser = new VdfParser({ useLatestValue: true });
-const result = parser.parseText(input);
+const result = await parser.parseText(input);
 
 // assert.assertEqual(result, { 'key': 'value' });
 ```
