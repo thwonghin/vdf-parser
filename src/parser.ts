@@ -2,11 +2,10 @@ import fs from 'node:fs';
 import stream from 'node:stream';
 
 import {
-    ControlType,
     TokenType,
     Tokenizer,
     type TokenResponse,
-    type ControlResponse,
+    NestDirection,
 } from './tokenizer';
 import { assertNever } from './utils';
 
@@ -258,35 +257,37 @@ export class VdfParser extends stream.Transform {
         }
     }
 
-    private parseTokenResponse(response: TokenResponse | ControlResponse) {
-        if ('tokenType' in response) {
-            switch (response.tokenType) {
-                case TokenType.KEY:
-                    this.keyStack.push(response.token);
-                    break;
-                case TokenType.VALUE:
-                    this.push({
-                        keyParts: [...this.keyStack],
-                        value: response.token,
-                    });
-                    this.keyStack.pop();
-                    break;
-                default:
-                    assertNever(response.tokenType);
-            }
-        }
+    private parseTokenResponse(response: TokenResponse) {
+        switch (response.tokenType) {
+            case TokenType.KEY:
+                this.keyStack.push(response.value);
+                break;
+            case TokenType.VALUE:
+                this.push({
+                    keyParts: [...this.keyStack],
+                    value: response.value,
+                });
+                this.keyStack.pop();
+                break;
+            case TokenType.NEST: {
+                const nestDirection = response.value as NestDirection;
 
-        if ('controlType' in response) {
-            switch (response.controlType) {
-                case ControlType.START_NESTED:
-                    // Nothing need to be done
-                    break;
-                case ControlType.END_NESTED:
-                    this.keyStack.pop();
-                    break;
-                default:
-                    assertNever(response.controlType);
+                switch (nestDirection) {
+                    case NestDirection.START:
+                        // Nothing need to be done
+                        break;
+                    case NestDirection.END:
+                        this.keyStack.pop();
+                        break;
+                    default:
+                        assertNever(nestDirection);
+                }
+
+                break;
             }
+
+            default:
+                assertNever(response.tokenType);
         }
     }
 }

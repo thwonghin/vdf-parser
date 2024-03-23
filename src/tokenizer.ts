@@ -29,15 +29,15 @@ const DEFAULT_DEBUG_BUFFER_SIZE = 20;
 export enum TokenType {
     KEY,
     VALUE,
+    NEST,
 }
 
-export enum ControlType {
-    START_NESTED,
-    END_NESTED,
+export enum NestDirection {
+    START = '{',
+    END = '}',
 }
 
-export type TokenResponse = { tokenType: TokenType; token: string };
-export type ControlResponse = { controlType: ControlType };
+export type TokenResponse = { tokenType: TokenType; value: string };
 
 export type TokenizerOption = {
     disableEscape?: boolean;
@@ -95,9 +95,7 @@ export class Tokenizer {
 
     constructor(private readonly options: TokenizerOption = {}) {}
 
-    public *ingestChar(
-        char: string,
-    ): Generator<TokenResponse | ControlResponse> {
+    public *ingestChar(char: string): Generator<TokenResponse> {
         if (this.buffer === null) {
             this.buffer = char;
             return;
@@ -111,7 +109,7 @@ export class Tokenizer {
         this.storeDebugBuffer(char);
     }
 
-    public *flush(): Generator<TokenResponse | ControlResponse> {
+    public *flush(): Generator<TokenResponse> {
         yield* this.ingestChar(NEW_LINE_CHAR);
         if (this.buffer !== null) {
             yield* this.parseCharacter(this.buffer, undefined);
@@ -135,7 +133,7 @@ export class Tokenizer {
     private *parseCharacter(
         char: string,
         lookahead: string | undefined,
-    ): Generator<TokenResponse | ControlResponse> {
+    ): Generator<TokenResponse> {
         switch (char) {
             case CARRIAGE_RETURN_CHAR:
             case BOM:
@@ -304,7 +302,7 @@ export class Tokenizer {
                 break;
             case TokenizerState.IN_KEY_WITHOUT_QUOTE:
                 yield this.emitToken(TokenType.KEY);
-                yield this.emitControl(ControlType.START_NESTED);
+                yield this.emitNest(NestDirection.START);
                 this.state = TokenizerState.AFTER_VALUE;
                 break;
             case TokenizerState.IN_VALUE_WITHOUT_QUOTE:
@@ -314,7 +312,7 @@ export class Tokenizer {
                     this.debugBuffer.join(''),
                 );
             case TokenizerState.AFTER_KEY:
-                yield this.emitControl(ControlType.START_NESTED);
+                yield this.emitNest(NestDirection.START);
                 this.state = TokenizerState.AFTER_VALUE;
                 break;
             case TokenizerState.AFTER_VALUE:
@@ -352,7 +350,7 @@ export class Tokenizer {
                 );
             case TokenizerState.IN_VALUE_WITHOUT_QUOTE:
                 yield this.emitToken(TokenType.VALUE);
-                yield this.emitControl(ControlType.END_NESTED);
+                yield this.emitNest(NestDirection.END);
                 this.state = TokenizerState.AFTER_VALUE;
                 break;
             case TokenizerState.AFTER_KEY:
@@ -362,7 +360,7 @@ export class Tokenizer {
                     this.debugBuffer.join(''),
                 );
             case TokenizerState.AFTER_VALUE:
-                yield this.emitControl(ControlType.END_NESTED);
+                yield this.emitNest(NestDirection.END);
                 break;
             case TokenizerState.COMMENT_AFTER_KEY:
                 // Do nothing
@@ -522,18 +520,18 @@ export class Tokenizer {
         this.currentPosition++;
     }
 
-    private emitToken(tokenType: TokenType) {
-        const result = { tokenType, token: this.tokenParts.join('') };
+    private emitToken(tokenType: TokenType): TokenResponse {
+        const result = { tokenType, value: this.tokenParts.join('') };
         this.tokenParts.splice(0);
         return result;
     }
 
-    private emitControl(controlType: ControlType) {
-        switch (controlType) {
-            case ControlType.START_NESTED:
+    private emitNest(nestDirection: NestDirection) {
+        switch (nestDirection) {
+            case NestDirection.START:
                 this.nestedLevel++;
                 break;
-            case ControlType.END_NESTED:
+            case NestDirection.END:
                 this.nestedLevel--;
                 if (this.nestedLevel < 0) {
                     throw new TokenizerTooManyBracketsError(
@@ -545,9 +543,9 @@ export class Tokenizer {
 
                 break;
             default:
-                assertNever(controlType);
+                assertNever(nestDirection);
         }
 
-        return { controlType };
+        return { tokenType: TokenType.NEST, value: nestDirection };
     }
 }

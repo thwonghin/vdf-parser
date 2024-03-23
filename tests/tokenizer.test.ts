@@ -1,14 +1,12 @@
 import { test, expect } from 'bun:test';
 
 import {
-    ControlType,
     TokenType,
     Tokenizer,
     TokenizerCloseBracketAfterKeyError,
     TokenizerEscapeOutsideQuote,
     TokenizerOpenBracketAfterValueError,
     TokenizerTooManyBracketsError,
-    TokenizerUnsupportedEscapeSequenceError,
 } from '../src/tokenizer';
 
 function* ingestText(tokenizer: Tokenizer, text: string) {
@@ -27,11 +25,11 @@ test('should parse one line correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value',
+            value: 'value',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -44,11 +42,11 @@ test('should parse one line with with quotes correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value',
+            value: 'value',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -61,11 +59,11 @@ test('should parse with no space correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value',
+            value: 'value',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -78,11 +76,11 @@ test('should parse no space for two quoted tokens correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value',
+            value: 'value',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -95,19 +93,19 @@ test('should parse multiple tokens with no space correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value',
+            value: 'value',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key2',
+            value: 'key2',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value2',
+            value: 'value2',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -121,19 +119,19 @@ test('should parse multiple line with with quotes correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value',
+            value: 'value',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'another_key',
+            value: 'another_key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'another_value',
+            value: 'another_value',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -146,11 +144,11 @@ test('should parse having new line with quotes correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value\nnext_line',
+            value: 'value\nnext_line',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -163,11 +161,11 @@ test('should parse backward slash without escape correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: '\\key',
+            value: '\\key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'first_line\\nsecond_line',
+            value: 'first_line\\nsecond_line',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -180,11 +178,11 @@ test('should escape correctly', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: '\\nke\\ty',
+            value: '\\nke\\ty',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'v"al\\ue',
+            value: 'v"al\\ue',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -196,7 +194,7 @@ test('should not throw when the character is unsupported to escape', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key\\e',
+            value: 'key\\e',
             tokenType: TokenType.KEY,
         },
     ]);
@@ -214,27 +212,27 @@ test('should ignore comment', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value',
+            value: 'value',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key2',
+            value: 'key2',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value2',
+            value: 'value2',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key3',
+            value: 'key3',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value3',
+            value: 'value3',
             tokenType: TokenType.VALUE,
         },
     ]);
@@ -246,14 +244,16 @@ test('should handle empty nest levels', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
     ]);
 });
@@ -275,84 +275,92 @@ test('should nest multiple levels', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key2',
+            value: 'key2',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key3',
+            value: 'key3',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value3',
+            value: 'value3',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key4',
+            value: 'key4',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value4',
+            value: 'value4',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key5',
+            value: 'key5',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key{6}',
+            value: 'key{6}',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value{6}',
+            value: 'value{6}',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key7',
+            value: 'key7',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key8',
+            value: 'key8',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value8',
+            value: 'value8',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key9',
+            value: 'key9',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value9',
+            value: 'value9',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
     ]);
 });
@@ -374,84 +382,92 @@ test('should handle all happy cases with escape', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'ke"y2',
+            value: 'ke"y2',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key3',
+            value: 'key3',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'val\\ue3',
+            value: 'val\\ue3',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key4',
+            value: 'key4',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value4',
+            value: 'value4',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key5',
+            value: 'key5',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key\\n{6}',
+            value: 'key\\n{6}',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'val\\tue{6}',
+            value: 'val\\tue{6}',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key7',
+            value: 'key7',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key8',
+            value: 'key8',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value8',
+            value: 'value8',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key9',
+            value: 'key9',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value9',
+            value: 'value9',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
     ]);
 });
@@ -473,84 +489,92 @@ test('should handle all happy cases without escape', () => {
     const tokens = [...ingestText(tokenizer, input)];
     expect(tokens).toEqual([
         {
-            token: 'key',
+            value: 'key',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'ke\\y2',
+            value: 'ke\\y2',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key3',
+            value: 'key3',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'val\\\\ue3',
+            value: 'val\\\\ue3',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key4',
+            value: 'key4',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value4',
+            value: 'value4',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key5',
+            value: 'key5',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key\\n{6}',
+            value: 'key\\n{6}',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'val\\tue{6}',
+            value: 'val\\tue{6}',
             tokenType: TokenType.VALUE,
         },
         {
-            token: 'key7',
+            value: 'key7',
             tokenType: TokenType.KEY,
         },
         {
-            controlType: ControlType.START_NESTED,
+            value: '{',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key8',
+            value: 'key8',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value8',
+            value: 'value8',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
         {
-            token: 'key9',
+            value: 'key9',
             tokenType: TokenType.KEY,
         },
         {
-            token: 'value9',
+            value: 'value9',
             tokenType: TokenType.VALUE,
         },
         {
-            controlType: ControlType.END_NESTED,
+            value: '}',
+            tokenType: TokenType.NEST,
         },
     ]);
 });
@@ -563,11 +587,11 @@ test('should handle unicode', () => {
 
     expect(result).toEqual([
         {
-            token: '你好',
+            value: '你好',
             tokenType: TokenType.KEY,
         },
         {
-            token: '世界test',
+            value: '世界test',
             tokenType: TokenType.VALUE,
         },
     ]);
