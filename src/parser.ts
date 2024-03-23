@@ -198,22 +198,15 @@ export class VdfParser extends stream.Transform {
         callback: stream.TransformCallback,
     ): void {
         for (const char of chunk.toString()) {
-            for (const pair of this.iterateKeyValues(char)) {
-                this.push(pair);
-            }
+            this.ingestChar(char);
         }
 
         callback();
     }
 
     override _flush(callback: stream.TransformCallback): void {
-        for (const pair of this.iterateKeyValues('\n')) {
-            this.push(pair);
-        }
-
-        for (const pair of this.flushTokenizer()) {
-            this.push(pair);
-        }
+        this.ingestChar('\n');
+        this.flushTokenizer();
 
         this.reset();
         callback();
@@ -253,37 +246,29 @@ export class VdfParser extends stream.Transform {
         }
     }
 
-    private *iterateKeyValues(char: string) {
-        if ([...char].length !== 1) {
-            throw new VdfParserError(
-                'Should ingest 1 character each time. Use `ingestText` for multiple characters',
-            );
-        }
-
+    private ingestChar(char: string) {
         for (const response of this.tokenizer.ingestChar(char)) {
-            yield* this.parseTokenResponse(response);
+            this.parseTokenResponse(response);
         }
     }
 
-    private *flushTokenizer() {
+    private flushTokenizer() {
         for (const response of this.tokenizer.flush()) {
-            yield* this.parseTokenResponse(response);
+            this.parseTokenResponse(response);
         }
     }
 
-    private *parseTokenResponse(
-        response: TokenResponse | ControlResponse,
-    ): Generator<VdfParsedKeyValue> {
+    private parseTokenResponse(response: TokenResponse | ControlResponse) {
         if ('tokenType' in response) {
             switch (response.tokenType) {
                 case TokenType.KEY:
                     this.keyStack.push(response.token);
                     break;
                 case TokenType.VALUE:
-                    yield {
+                    this.push({
                         keyParts: [...this.keyStack],
                         value: response.token,
-                    };
+                    });
                     this.keyStack.pop();
                     break;
                 default:

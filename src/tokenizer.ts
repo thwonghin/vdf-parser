@@ -98,15 +98,6 @@ export class Tokenizer {
     public *ingestChar(
         char: string,
     ): Generator<TokenResponse | ControlResponse> {
-        if ([...char].length !== 1) {
-            throw new TokenizerError(
-                'Should ingest 1 character each time. Use `ingestLine` for multiple characters',
-                this.currentLineNumber,
-                this.currentPosition,
-                this.debugBuffer.join(''),
-            );
-        }
-
         if (this.buffer === null) {
             this.buffer = char;
             return;
