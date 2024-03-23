@@ -75,7 +75,7 @@ for await (const pair of parserStream) {
 }
 ```
 
-#### Condense the pairs to an object using `condensePairs` and `condensePairsAsync`
+#### Condense the pairs to an object using `condensePairs` or `condensePairsAsync`
 
 ```ts
 // You can build the object from the stream using async iterator interface:
