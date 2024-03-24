@@ -1,4 +1,4 @@
-[![npm version](https://badge.fury.io/js/@hinw%2Fvdf-parser.svg)](https://badge.fury.io/js/@hinw%2Fvdf-parser)
+[![npm version](https://badge.fury.io/js/@hinw%2Fvdf-parser.svg)](https://www.npmjs.com/package/@hinw/vdf-parser)
 
 # @hinw/vdf-parser
 
