@@ -1,3 +1,5 @@
+[![npm version](https://badge.fury.io/js/@hinw%2Fvdf-parser.svg)](https://badge.fury.io/js/@hinw%2Fvdf-parser)
+
 # @hinw/vdf-parser
 
 A simple parser for Valve's KeyValue text file format (VDF) https://developer.valvesoftware.com/wiki/KeyValues. Written in JavaScript (TypeScript).
