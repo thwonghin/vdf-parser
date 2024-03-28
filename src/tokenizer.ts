@@ -86,38 +86,46 @@ export class TokenizerEscapeOutsideQuote extends TokenizerError {
 // https://developer.valvesoftware.com/wiki/KeyValues#About_KeyValues_Text_File_Format
 export class Tokenizer {
     private state: TokenizerState = TokenizerState.AFTER_VALUE;
-    private readonly tokenParts: string[] = [];
     private nestedLevel = 0;
-    private buffer: string | null = null;
+    private previousChar: string | null = null;
     private currentLineNumber = 0;
     private currentPosition = 0;
+    private readonly tokenParts: string[] = [];
     private readonly debugBuffer: string[] = [];
 
     constructor(private readonly options: TokenizerOption = {}) {}
 
     public *ingestChar(char: string): Generator<TokenResponse> {
-        if (this.buffer === null) {
-            this.buffer = char;
+        // This creates two-characters window for the next iteration
+        // The parser requires at least two chars to recognize patterns like comment starter or escape sequence
+        if (this.previousChar === null) {
+            this.previousChar = char;
             return;
         }
 
-        yield* this.parseCharacter(this.buffer, char);
-        if (this.buffer !== null) {
-            this.buffer = char;
+        yield* this.parseWindow(this.previousChar, char);
+
+        // If the first char in the window is set as null after parsing,
+        // it means the parser consumed two characters at the same time like comment starter or escape sequence
+        // and we can skip the second char by leaving it null
+        if (this.previousChar !== null) {
+            this.previousChar = char;
         }
 
         this.storeDebugBuffer(char);
     }
 
     public *flush(): Generator<TokenResponse> {
-        yield* this.ingestChar(NEW_LINE_CHAR);
-        if (this.buffer !== null) {
-            yield* this.parseCharacter(this.buffer, undefined);
-            this.buffer = null;
+        if (this.previousChar !== null) {
+            yield* this.parseWindow(this.previousChar, undefined);
+            this.previousChar = null;
         }
+
+        // Some state might be stuck without new line at the end
+        yield* this.ingestChar(NEW_LINE_CHAR);
     }
 
-    private storeDebugBuffer(char: string) {
+    private storeDebugBuffer(char: string): void {
         if (!this.options.verbose) {
             return;
         }
@@ -130,61 +138,63 @@ export class Tokenizer {
         );
     }
 
-    private *parseCharacter(
-        char: string,
-        lookahead: string | undefined,
+    private *parseWindow(
+        char1: string,
+        char2?: string,
     ): Generator<TokenResponse> {
-        switch (char) {
+        switch (char1) {
             case CARRIAGE_RETURN_CHAR:
             case BOM:
                 // Ignore. Do nothing
                 break;
             case NEW_LINE_CHAR:
-                yield* this.handleNewLine(char);
+                yield* this.handleNewLine(char1);
                 break;
             case WHITE_SPACE:
             case TAB_SPACE:
-                yield* this.handleWhitespace(char);
+                yield* this.handleWhitespace(char1);
                 break;
             case QUOTE:
                 yield* this.handleQuote();
                 break;
             case BRACKET_OPEN:
-                yield* this.handleBracketOpen(char);
+                yield* this.handleBracketOpen(char1);
                 break;
             case BRACKET_CLOSE:
-                yield* this.handleBracketClose(char);
+                yield* this.handleBracketClose(char1);
                 break;
             case ESCAPE:
                 if (this.options.disableEscape) {
-                    this.handleNormalCharacter(char);
+                    this.handleNormalCharacter(char1);
                 } else {
-                    this.handleEscape(char, lookahead);
-                    this.buffer = null;
+                    this.handleEscape(char1, char2);
+                    // Skip parsing next char by setting this to null
+                    this.previousChar = null;
                 }
 
                 break;
             case COMMENT_START[0]:
-                if ([char, lookahead].join('') === COMMENT_START) {
+                if (char1 + char2 === COMMENT_START) {
                     yield* this.handleComment();
-                    this.buffer = null;
+                    // Skip parsing next char by setting this to null
+                    this.previousChar = null;
                 } else {
-                    this.handleNormalCharacter(char);
+                    this.handleNormalCharacter(char1);
                 }
 
                 break;
             default:
-                this.handleNormalCharacter(char);
+                this.handleNormalCharacter(char1);
         }
 
         if (this.options.verbose) {
             console.log(
-                `Parsed ${this.currentLineNumber}:${this.currentPosition} ${char === NEW_LINE_CHAR ? 'new_line' : char} ${char.charCodeAt(0)}, State: ${this.state}`,
+                `Parsed ${this.currentLineNumber}:${this.currentPosition} ${char1 === NEW_LINE_CHAR ? 'new_line' : char1} ${char1.charCodeAt(0)}, State: ${this.state}`,
             );
         }
     }
 
-    private *handleNewLine(char: string) {
+    private *handleNewLine(char: string): Generator<TokenResponse> {
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
                 this.tokenParts.push(char);
@@ -220,7 +230,7 @@ export class Tokenizer {
         this.currentPosition = 0;
     }
 
-    private *handleWhitespace(char: string) {
+    private *handleWhitespace(char: string): Generator<TokenResponse> {
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
                 this.tokenParts.push(char);
@@ -255,7 +265,7 @@ export class Tokenizer {
         this.currentPosition++;
     }
 
-    private *handleQuote() {
+    private *handleQuote(): Generator<TokenResponse> {
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
                 yield this.emitToken(TokenType.KEY);
@@ -292,7 +302,7 @@ export class Tokenizer {
         this.currentPosition++;
     }
 
-    private *handleBracketOpen(char: string) {
+    private *handleBracketOpen(char: string): Generator<TokenResponse> {
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
                 this.tokenParts.push(char);
@@ -334,7 +344,7 @@ export class Tokenizer {
         this.currentPosition++;
     }
 
-    private *handleBracketClose(char: string) {
+    private *handleBracketClose(char: string): Generator<TokenResponse> {
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
                 this.tokenParts.push(char);
@@ -375,7 +385,7 @@ export class Tokenizer {
         this.currentPosition++;
     }
 
-    private handleEscape(char: string, lookAhead: string | undefined) {
+    private handleEscape(char1: string, char2?: string): void {
         if (
             this.state === TokenizerState.COMMENT_AFTER_KEY ||
             this.state === TokenizerState.COMMENT_AFTER_VALUE
@@ -385,7 +395,7 @@ export class Tokenizer {
             return;
         }
 
-        if (lookAhead === '' || lookAhead === undefined) {
+        if (char2 === '' || char2 === undefined) {
             throw new TokenizerNoCharacterToEscapeError(
                 this.currentLineNumber,
                 this.currentPosition,
@@ -393,7 +403,7 @@ export class Tokenizer {
             );
         }
 
-        const charWithLookAhead = [char, lookAhead].join('');
+        const charWithLookAhead = [char1, char2].join('');
 
         const keepSlash =
             ESCAPE_SEQUENCES__KEEP_SLASH.includes(charWithLookAhead);
@@ -401,14 +411,15 @@ export class Tokenizer {
             ESCAPE_SEQUENCES__NO_SLASH.includes(charWithLookAhead);
 
         if (keepSlash === removeSlash) {
-            // Unsupported slash sequence - handle like normal
-            this.handleNormalCharacter(char);
-            this.handleNormalCharacter(lookAhead);
+            // It should only happens when both booleans are `false`.
+            // That means this is an unsupported escape sequence - handle like normal chars
+            this.handleNormalCharacter(char1);
+            this.handleNormalCharacter(char2);
             this.currentPosition += 2;
             return;
         }
 
-        const charToPush = keepSlash ? charWithLookAhead : lookAhead;
+        const charToPush = keepSlash ? charWithLookAhead : char2;
 
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
@@ -448,7 +459,7 @@ export class Tokenizer {
         this.currentPosition += 2;
     }
 
-    private handleNormalCharacter(char: string) {
+    private handleNormalCharacter(char: string): void {
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
                 this.tokenParts.push(char);
@@ -483,7 +494,7 @@ export class Tokenizer {
         this.currentPosition++;
     }
 
-    private *handleComment() {
+    private *handleComment(): Generator<TokenResponse> {
         switch (this.state) {
             case TokenizerState.IN_KEY_WITH_QUOTE:
                 yield this.emitToken(TokenType.KEY);
@@ -526,7 +537,7 @@ export class Tokenizer {
         return result;
     }
 
-    private emitNest(nestDirection: NestDirection) {
+    private emitNest(nestDirection: NestDirection): TokenResponse {
         switch (nestDirection) {
             case NestDirection.START:
                 this.nestedLevel++;

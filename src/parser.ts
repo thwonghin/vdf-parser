@@ -98,7 +98,7 @@ export class VdfParser extends stream.Transform {
      * @param {string} filePath The path to the VDF file
      * @returns {VdfKeyValueMap} The parsed object
      */
-    public async parseFile(filePath: string) {
+    public async parseFile(filePath: string): Promise<VdfKeyValueMap> {
         return this.parseStream(
             fs.createReadStream(filePath, { encoding: 'utf-8' }),
         );
@@ -187,7 +187,7 @@ export class VdfParser extends stream.Transform {
     /**
      * Reset the internal states of this instance so this can be reused for next parsing
      */
-    public reset() {
+    public reset(): void {
         this.keyStack = [];
     }
 
@@ -204,34 +204,34 @@ export class VdfParser extends stream.Transform {
     }
 
     override _flush(callback: stream.TransformCallback): void {
-        this.ingestChar('\n');
         this.flushTokenizer();
 
-        this.reset();
         callback();
     }
 
-    private appendPair(pair: VdfParsedKeyValue, result: VdfKeyValueMap) {
+    private appendPair(pair: VdfParsedKeyValue, result: VdfKeyValueMap): void {
         const lastKey = pair.keyParts.pop();
         if (!lastKey) {
             throw new VdfParserError('Empty key encountered');
         }
 
         let traversed: VdfKeyValueMap = result;
-        let key;
 
+        function createNewNestedLevel(newKey: string) {
+            const newKvMap = {};
+            traversed[newKey] = newKvMap;
+            traversed = newKvMap;
+        }
+
+        let key: string | undefined;
         while ((key = pair.keyParts.shift())) {
             const tempTraversed = traversed[key];
 
             if (tempTraversed === undefined) {
-                const newKvMap = {};
-                traversed[key] = newKvMap;
-                traversed = newKvMap;
+                createNewNestedLevel(key);
             } else if (typeof tempTraversed === 'string') {
                 if (this.options.useLatestValue) {
-                    const newKvMap = {};
-                    traversed[key] = newKvMap;
-                    traversed = newKvMap;
+                    createNewNestedLevel(key);
                 } else {
                     return;
                 }
@@ -245,19 +245,19 @@ export class VdfParser extends stream.Transform {
         }
     }
 
-    private ingestChar(char: string) {
+    private ingestChar(char: string): void {
         for (const response of this.tokenizer.ingestChar(char)) {
             this.parseTokenResponse(response);
         }
     }
 
-    private flushTokenizer() {
+    private flushTokenizer(): void {
         for (const response of this.tokenizer.flush()) {
             this.parseTokenResponse(response);
         }
     }
 
-    private parseTokenResponse(response: TokenResponse) {
+    private parseTokenResponse(response: TokenResponse): void {
         switch (response.tokenType) {
             case TokenType.KEY:
                 this.keyStack.push(response.value);

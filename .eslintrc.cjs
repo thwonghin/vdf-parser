@@ -1,7 +1,6 @@
 module.exports = {
     extends: [
         'xo',
-        'xo/browser',
         'xo-typescript',
         'plugin:import/recommended',
         'plugin:import/typescript',
@@ -15,14 +14,13 @@ module.exports = {
     rules: {
         '@typescript-eslint/no-unused-vars': [
             'warn',
-            { argsIgnorePattern: '^_' },
+            { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
         ],
         'unicorn/no-array-callback-reference': 'off',
         'node/file-extension-in-import': 'off',
         '@typescript-eslint/no-implicit-any-catch': 'off',
         'object-shorthand': ['error', 'always', { avoidQuotes: true }],
         'no-await-in-loop': 'off',
-        // Using 'useUnknownInCatchVariables' in tsconfig by default
         'import/order': [
             'error',
             {

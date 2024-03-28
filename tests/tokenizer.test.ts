@@ -602,8 +602,7 @@ test('should throw with misplaced open bracket after non quoted value', () => {
     const input = `"key"value{`;
     let error = null;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...ingestText(tokenizer, input)];
+        const _ = [...ingestText(tokenizer, input)];
     } catch (err) {
         error = err;
     }
@@ -616,8 +615,7 @@ test('should throw with misplaced open bracket after quoted value', () => {
     const input = `"key""value"{`;
     let error = null;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...ingestText(tokenizer, input)];
+        const _ = [...ingestText(tokenizer, input)];
     } catch (err) {
         error = err;
     }
@@ -630,8 +628,7 @@ test('should throw with misplaced close bracket after non quoted key', () => {
     const input = `key}`;
     let error = null;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...ingestText(tokenizer, input)];
+        const _ = [...ingestText(tokenizer, input)];
     } catch (err) {
         error = err;
     }
@@ -644,8 +641,7 @@ test('should throw with misplaced close bracket after quoted key', () => {
     const input = `"key"}`;
     let error = null;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...ingestText(tokenizer, input)];
+        const _ = [...ingestText(tokenizer, input)];
     } catch (err) {
         error = err;
     }
@@ -658,8 +654,7 @@ test('should throw when ending too many nest levels', () => {
     const input = `"key"{}}`;
     let error = null;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...ingestText(tokenizer, input)];
+        const _ = [...ingestText(tokenizer, input)];
     } catch (err) {
         error = err;
     }
@@ -672,8 +667,7 @@ test('should throw when the escape after quote', () => {
     const input = `key\\"{}`;
     let error = null;
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const tokens = [...ingestText(tokenizer, input)];
+        const _ = [...ingestText(tokenizer, input)];
     } catch (err) {
         error = err;
     }
