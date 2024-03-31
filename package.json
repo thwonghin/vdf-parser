@@ -21,7 +21,8 @@
         "postbuild": "rimraf tsconfig.types.tsbuildinfo",
         "test": "bun test",
         "lint": "eslint --ext .ts src",
-        "type-check": "tsc --noEmit"
+        "type-check": "tsc --noEmit",
+        "publish:jsr": "npx jsr publish"
     },
     "devDependencies": {
         "@types/bun": "latest",
