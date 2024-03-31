@@ -5,6 +5,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "type": "module",
+    "exports": "./index.ts",
     "description": "A parser for Valve's KeyValue text file format (VDF)",
     "license": "MIT",
     "keywords": [
