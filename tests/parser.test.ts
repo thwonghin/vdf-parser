@@ -213,6 +213,66 @@ describe('parseText', () => {
         });
     });
 
+    test('should parse correctly with merged map if possible', async () => {
+        const input = `key{"ke\\"y2"{key3 "val\\\\ue3"}
+        }
+        key4 {
+            none none
+            nested {
+              1 {
+                description test
+              }
+            }
+            test test
+            nested {
+              2 {
+                description test
+              }
+            }
+        }
+        key5 {
+            "key\\n{6}" "val\\tue{6}"
+            "key7" {
+                key8 "value8"
+                key8 {
+                    key9 "value9"
+                }
+            }
+            key9 "value9"
+        }
+        `;
+
+        const parser = new VdfParser();
+        const result = await parser.parseText(input);
+
+        expect(result).toEqual({
+            key: {
+                'ke"y2': {
+                    key3: 'val\\ue3',
+                },
+            },
+            key4: {
+                none: 'none',
+                test: 'test',
+                nested: {
+                    1: {
+                        description: 'test',
+                    },
+                    2: {
+                        description: 'test',
+                    },
+                },
+            },
+            key5: {
+                'key\\n{6}': 'val\\tue{6}',
+                key7: {
+                    key8: 'value8',
+                },
+                key9: 'value9',
+            },
+        });
+    });
+
     test('should throw tokenizer error if malformed', async () => {
         const input = `key {}}`;
 
