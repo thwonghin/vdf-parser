@@ -415,7 +415,6 @@ export class Tokenizer {
             // That means this is an unsupported escape sequence - handle like normal chars
             this.handleNormalCharacter(char1);
             this.handleNormalCharacter(char2);
-            this.currentPosition += 2;
             return;
         }
 
