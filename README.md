@@ -111,6 +111,21 @@ const result = await parser.parseText(input);
 
 ### Handling duplicated keys
 
+#### Separated maps
+
+If the values of the duplicated keys are all maps, they will be merged together
+```ts
+import { VdfParser } from '@hinw/vdf-parser';
+
+const input = `"key" { "nested_key" "value" }" "key" { "nested_key_2" "value" }"`;
+const parser = new VdfParser({ useLatestValue: true });
+const result = await parser.parseText(input);
+
+// assert.assertEqual(result, { key: { nested_key: 'value', nested_key_2: 'value' } });
+```
+
+#### Map vs normal value
+
 By default, the parser will use the earliest seen value for the duplicated keys.
 
 ```ts
@@ -132,5 +147,12 @@ const input = `"key" { "nested_key" "value" }" "key" "value"`;
 const parser = new VdfParser({ useLatestValue: true });
 const result = await parser.parseText(input);
 
-// assert.assertEqual(result, { 'key': 'value' });
+// assert.assertEqual(result, { key: 'value' });
 ```
+
+## Misc
+
+### No type conversion
+
+Since the VDF specification does not contain any type info, it would be a guess work to convert some value to a certain type. To keep this library simple, it would not provide an option to do auto type detection / conversion.
+In theory if the user is interested in using the values of a VDF they should know the schema of the file well and it is the responsibiliy for the user to convert the types instead of this library doing the guess work.
