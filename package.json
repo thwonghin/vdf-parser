@@ -41,6 +41,8 @@
         "typescript": "^5.0.0"
     },
     "files": [
+        "index.ts",
+        "src/*.ts",
         "dist/*.js",
         "dist/*.d.ts"
     ]
